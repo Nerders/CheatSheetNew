@@ -12,6 +12,7 @@ import { relaunch } from '@tauri-apps/api/process'
 
 let unlisten: UnlistenFn
 let eventId = 0
+let abortController: AbortController | null = null
 
 const Update = () => {
   const window = useRef<WebviewWindow>()
@@ -21,6 +22,7 @@ const Update = () => {
   const [manifest, setManifest] = useState<UpdateManifest>()
   const [total, setTotal] = useState(0)
   const [downloaded, setDownloaded] = useState(-1)
+  const [cancelled, setCancelled] = useState(false)
   const percent = (downloaded / total) * 100
 
   const init = async () => {
@@ -34,6 +36,15 @@ const Update = () => {
   }
 
   const close = async () => {
+    // 清理监听器
+    if (unlisten) {
+      unlisten()
+    }
+    // 取消正在进行的检查
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
     await window.current?.close()
   }
 
@@ -44,35 +55,74 @@ const Update = () => {
     })
   }
 
-  const check = async () => {
-    const { shouldUpdate, manifest } = await checkUpdate()
-    setIsLatest(!shouldUpdate)
-
-    if (shouldUpdate) {
-      setManifest(manifest)
-
-      // 记录当前下载进度
-      unlisten = await listen('tauri://update-download-progress', (e) => {
-        if (eventId === 0) {
-          eventId = e.id
-        }
-        if (e.id === eventId) {
-          // @ts-ignore
-          setTotal(e.payload.contentLength)
-          setDownloaded((a) => {
-            // @ts-ignore
-            return a + e.payload.chunkLength
-          })
-        }
-      })
+  const cancelCheck = () => {
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+      setCancelled(true)
+      setLoading(false)
+      toast('已取消检查更新', { icon: '⚠️', style: toastStyle })
     }
+  }
 
-    setLoading(false)
+  const check = async () => {
+    // 创建 AbortController 用于取消请求
+    abortController = new AbortController()
+    
+    try {
+      const { shouldUpdate, manifest } = await checkUpdate({ signal: abortController.signal })
+      
+      // 如果被取消，不继续处理
+      if (abortController.signal.aborted) {
+        return
+      }
+      
+      setIsLatest(!shouldUpdate)
+
+      if (shouldUpdate) {
+        setManifest(manifest)
+
+        // 记录当前下载进度
+        unlisten = await listen('tauri://update-download-progress', (e) => {
+          if (eventId === 0) {
+            eventId = e.id
+          }
+          if (e.id === eventId && !abortController?.signal.aborted) {
+            // @ts-ignore
+            setTotal(e.payload.contentLength)
+            setDownloaded((a) => {
+              // @ts-ignore
+              return a + e.payload.chunkLength
+            })
+          }
+        })
+      }
+    } catch (err: any) {
+      // 如果是用户取消，不显示错误
+      if (err?.name !== 'AbortError' && !abortController?.signal.aborted) {
+        console.error('检查更新失败:', err)
+        toast('检查更新失败，请稍后重试', { icon: '❌', style: toastStyle })
+      }
+    } finally {
+      setLoading(false)
+      abortController = null
+    }
   }
 
   useEffect(() => {
     init()
     check()
+    
+    // 组件卸载时清理
+    return () => {
+      if (unlisten) {
+        unlisten()
+      }
+      if (abortController) {
+        abortController.abort()
+        abortController = null
+      }
+    }
   }, [])
 
   return (
@@ -81,9 +131,29 @@ const Update = () => {
         <Image src='imgs/icon.png' width={72} height={72} alt='icon' className='mx-auto' />
       </div>
       {loading ? (
-        // 加载
-        <div className='flex-1 flex justify-center'>
-          <span className='loading loading-spinner -translate-y-10' />
+        // 加载中 - 显示取消按钮
+        <div className='flex-1 flex flex-col justify-center items-center gap-4'>
+          <span className='loading loading-spinner' />
+          <p className='text-sm text-gray-500'>正在检查更新...</p>
+          <button 
+            type='button' 
+            className='btn btn-outline btn-sm' 
+            onClick={cancelCheck}
+          >
+            取消
+          </button>
+        </div>
+      ) : cancelled ? (
+        // 已取消
+        <div className='flex-1 flex flex-col justify-center items-center gap-4'>
+          <p className='text-gray-500'>已取消检查更新</p>
+          <button 
+            type='button' 
+            className='btn btn-info btn-sm' 
+            onClick={close}
+          >
+            关闭
+          </button>
         </div>
       ) : isLatest ? (
         // 最新版本
