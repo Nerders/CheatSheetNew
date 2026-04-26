@@ -1,0 +1,114 @@
+{
+  "$schema": "./template/shortcut.schema.json",
+  "name": "Adobe Photoshop 2026",
+  "categories": [
+    {
+      "name": "文件操作",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+N" }, "description": "新建文档" },
+        { "command": { "win": "Ctrl+O" }, "description": "打开文档" },
+        { "command": { "win": "Ctrl+W" }, "description": "关闭文档" },
+        { "command": { "win": "Ctrl+S" }, "description": "保存" },
+        { "command": { "win": "Ctrl+Shift+S" }, "description": "另存为" },
+        { "command": { "win": "Ctrl+Alt+S" }, "description": "存储为Web所用格式" },
+        { "command": { "win": "Ctrl+P" }, "description": "打印" }
+      ]
+    },
+    {
+      "name": "编辑操作",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+Z" }, "description": "撤销" },
+        { "command": { "win": "Ctrl+Shift+Z" }, "description": "重做" },
+        { "command": { "win": "Ctrl+X" }, "description": "剪切" },
+        { "command": { "win": "Ctrl+C" }, "description": "复制" },
+        { "command": { "win": "Ctrl+V" }, "description": "粘贴" },
+        { "command": { "win": "Ctrl+Shift+V" }, "description": "原位粘贴" },
+        { "command": { "win": "Ctrl+T" }, "description": "自由变换" },
+        { "command": { "win": "Ctrl+Shift+T" }, "description": "再次变换" }
+      ]
+    },
+    {
+      "name": "图层操作",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+Shift+N" }, "description": "新建图层" },
+        { "command": { "win": "Ctrl+J" }, "description": "通过拷贝新建图层" },
+        { "command": { "win": "Ctrl+Shift+J" }, "description": "通过剪切新建图层" },
+        { "command": { "win": "Ctrl+G" }, "description": "图层编组" },
+        { "command": { "win": "Ctrl+Shift+G" }, "description": "取消图层编组" },
+        { "command": { "win": "Ctrl+E" }, "description": "向下合并图层" },
+        { "command": { "win": "Ctrl+Shift+E" }, "description": "合并可见图层" },
+        { "command": { "win": "Ctrl+Shift+Up" }, "description": "图层置顶" },
+        { "command": { "win": "Ctrl+Shift+Down" }, "description": "图层置底" },
+        { "command": { "win": "Ctrl+]" }, "description": "图层上移一层" },
+        { "command": { "win": "Ctrl+[" }, "description": "图层下移一层" }
+      ]
+    },
+    {
+      "name": "选择操作",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+A" }, "description": "全选" },
+        { "command": { "win": "Ctrl+D" }, "description": "取消选择" },
+        { "command": { "win": "Ctrl+Shift+D" }, "description": "重新选择" },
+        { "command": { "win": "Ctrl+Shift+I" }, "description": "反选" },
+        { "command": { "win": "Ctrl+Alt+A" }, "description": "选择所有图层" },
+        { "command": { "win": "Ctrl+Alt+R" }, "description": "调整边缘" }
+      ]
+    },
+    {
+      "name": "图像调整",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+L" }, "description": "色阶" },
+        { "command": { "win": "Ctrl+M" }, "description": "曲线" },
+        { "command": { "win": "Ctrl+B" }, "description": "色彩平衡" },
+        { "command": { "win": "Ctrl+U" }, "description": "色相/饱和度" },
+        { "command": { "win": "Ctrl+Alt+I" }, "description": "图像大小" },
+        { "command": { "win": "Ctrl+Alt+C" }, "description": "画布大小" }
+      ]
+    },
+    {
+      "name": "视图操作",
+      "shortcuts": [
+        { "command": { "win": "Ctrl+Plus" }, "description": "放大" },
+        { "command": { "win": "Ctrl+Minus" }, "description": "缩小" },
+        { "command": { "win": "Ctrl+0" }, "description": "自适应屏幕" },
+        { "command": { "win": "Ctrl+1" }, "description": "实际像素" },
+        { "command": { "win": "Ctrl+H" }, "description": "隐藏额外内容" },
+        { "command": { "win": "Ctrl+;" }, "description": "显示/隐藏参考线" },
+        { "command": { "win": "Ctrl+'" }, "description": "显示/隐藏网格" }
+      ]
+    },
+    {
+      "name": "工具",
+      "shortcuts": [
+        { "command": { "win": "V" }, "description": "移动工具" },
+        { "command": { "win": "M" }, "description": "矩形选框工具" },
+        { "command": { "win": "L" }, "description": "套索工具" },
+        { "command": { "win": "W" }, "description": "魔棒/快速选择工具" },
+        { "command": { "win": "C" }, "description": "裁剪工具" },
+        { "command": { "win": "J" }, "description": "污点修复画笔/修复画笔" },
+        { "command": { "win": "B" }, "description": "画笔工具" },
+        { "command": { "win": "S" }, "description": "仿制图章工具" },
+        { "command": { "win": "Y" }, "description": "历史记录画笔工具" },
+        { "command": { "win": "E" }, "description": "橡皮擦工具" },
+        { "command": { "win": "G" }, "description": "渐变/油漆桶工具" },
+        { "command": { "win": "O" }, "description": "减淡/加深/海绵工具" },
+        { "command": { "win": "P" }, "description": "钢笔工具" },
+        { "command": { "win": "T" }, "description": "文字工具" },
+        { "command": { "win": "A" }, "description": "路径选择/直接选择工具" },
+        { "command": { "win": "U" }, "description": "矩形/椭圆工具" },
+        { "command": { "win": "H" }, "description": "抓手工具" },
+        { "command": { "win": "Z" }, "description": "缩放工具" },
+        { "command": { "win": "[" }, "description": "减小画笔大小" },
+        { "command": { "win": "]" }, "description": "增大画笔大小" },
+        { "command": { "win": "Shift+[" }, "description": "减小画笔硬度" },
+        { "command": { "win": "Shift+]" }, "description": "增大画笔硬度" },
+        { "command": { "win": "D" }, "description": "默认前景色/背景色" },
+        { "command": { "win": "X" }, "description": "切换前景色/背景色" },
+        { "command": { "win": "Q" }, "description": "快速蒙版模式" },
+        { "command": { "win": "F" }, "description": "屏幕模式切换" },
+        { "command": { "win": "Tab" }, "description": "显示/隐藏所有面板" },
+        { "command": { "win": "Shift+Tab" }, "description": "显示/隐藏工具栏" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm dev",
+    "devPath": "http://localhost:3000",
+    "distDir": "../out"
+  },
+  "package": {
+    "productName": "CheatSheetNew",
+    "version": "../package.json"
+  },
+  "tauri": {
+    "allowlist": {
+      "globalShortcut": {
+        "all": true
+      },
+      "app": {
+        "hide": true,
+        "show": true
+      },
+      "window": {
+        "hide": true,
+        "show": true,
+        "setSize": true,
+        "center": true,
+        "setFocus": true,
+        "close": true,
+        "minimize": true,
+        "maximize": true,
+        "startDragging": true,
+        "unmaximize": true
+      },
+      "fs": {
+        "all": false,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "scope": ["**"]
+      },
+      "os": {
+        "all": true
+      },
+      "notification": {
+        "all": true
+      },
+      "path": {
+        "all": true
+      },
+      "shell": {
+        "open": true
+      },
+      "dialog": {
+        "all": true
+      },
+      "process": {
+        "relaunch": true
+      },
+      "clipboard": {
+        "writeText": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "category": "DeveloperTool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+      "identifier": "com.nerders.cheatsheetnew",
+      "longDescription": "",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": ["./shortcuts", "./resources"],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "",
+        "wix": {
+          "language": "zh-CN"
+        }
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "endpoints": ["https://github.com/Nerders/CheatSheetNew/releases/download/updater/update.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1Njk4QTc1REJEMEU5NzgKUldSNDZkRGJkWXBwbFZjb05QTVVaMHNJUDZqc0g1aE9LWGJPUERoKys3T05POTg5NW9WQ0NXYmQK"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "fullscreen": false,
+        "resizable": false,
+        "transparent": true,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "acceptFirstMouse": true,
+        "decorations": false,
+        "center": true,
+        "skipTaskbar": true,
+        "visible": false
+      }
+    ],
+    "macOSPrivateApi": true,
+    "systemTray": {
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": true
+    }
+  }
+}

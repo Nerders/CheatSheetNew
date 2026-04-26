@@ -1,0 +1,77 @@
+name: Package
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - '!updater'
+      - '*.*.*'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  change-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.outputstep.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: outputstep
+        run: |
+          echo "VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')" >> "$GITHUB_OUTPUT"
+      - name: Change Version for Windows
+        run: |
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\",/g" package.json
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/tauri.conf.json
+          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+      - name: Upload Source Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source
+          path: ./*
+          if-no-files-found: error
+
+  build-for-windows:
+    needs: change-version
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+        target: [x86_64-pc-windows-msvc]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: source
+      - name: Setup Nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install dependencies
+        run: |
+          rustup target add ${{ matrix.target }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Install Dependencies
+        run: pnpm install
+      - name: Build and Package
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: |
+          pnpm tauri build -b nsis --target ${{ matrix.target }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CheatSheetNew_Windows_${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.zip
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.zip.sig
+          if-no-files-found: error

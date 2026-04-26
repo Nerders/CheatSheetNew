@@ -1,0 +1,53 @@
+[
+  {
+    "title": "应用简介",
+    "list": [
+      {
+        "key": "应用名称",
+        "value": "CheatSheetNew"
+      },
+      {
+        "key": "版本",
+        "value": "0.0.0"
+      },
+      {
+        "key": "描述",
+        "value": "一个跨平台显示应用快捷键的软件"
+      },
+      {
+        "key": "开源协议",
+        "value": "MIT",
+        "url": "https://github.com/JinSooo/CheatSheet/blob/develop/LICENSE"
+      }
+    ]
+  },
+  {
+    "title": "相关站点",
+    "list": [
+      {
+        "key": "GitHub",
+        "value": "https://github.com/Nerders/CheatSheetNew",
+        "url": "https://github.com/Nerders/CheatSheetNew"
+      }
+    ]
+  },
+  {
+    "title": "反馈",
+    "list": [
+      {
+        "key": "Bug",
+        "value": "提交Issue",
+        "url": "https://github.com/Nerders/CheatSheetNew/issues"
+      },
+      {
+        "key": "新特性",
+        "value": "提交Issue",
+        "url": "https://github.com/Nerders/CheatSheetNewt/issues"
+      },
+      {
+        "key": "联系我们",
+        "value": "..."
+      }
+    ]
+  }
+]
