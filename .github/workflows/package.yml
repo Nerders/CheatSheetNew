@@ -5,7 +5,7 @@ on:
     branches: [main, master]
     tags:
       - 'v*'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   get-version:
@@ -29,7 +29,7 @@ jobs:
     needs: get-version
     runs-on: windows-latest
     permissions:
-      contents: write  # 允许创建 Release
+      contents: write
       actions: read
       
     steps:
@@ -54,9 +54,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
+      - name: Decode private key
+        if: secrets.TAURI_PRIVATE_KEY != ''
+        shell: pwsh
+        run: |
+          $bytes = [System.Convert]::FromBase64String("${{ secrets.TAURI_PRIVATE_KEY }}")
+          [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
+      
       - name: Build Tauri app
         env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY != '' && 'cheatsheet.key' || '' }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: pnpm tauri build -b nsis --target x86_64-pc-windows-msvc
       
@@ -84,7 +91,12 @@ jobs:
             ### 安装说明
             1. 下载 `CheatSheetNew_${{ needs.get-version.outputs.version }}_x64-setup.exe`
             2. 双击运行安装
-            3. 打开 Photoshop，按 F1 查看快捷键
+            3. 打开 Adobe Photoshop，按 `F1` 查看快捷键
+            
+            ### 功能
+            - ✅ 支持 Adobe Photoshop 2026 快捷键
+            - ✅ 默认热键 F1 / Ctrl+F1
+            - ✅ 窗口比例 85%，圆角 30px
           files: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
