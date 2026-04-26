@@ -12,7 +12,7 @@ import { relaunch } from '@tauri-apps/api/process'
 
 let unlisten: UnlistenFn
 let eventId = 0
-let abortController: AbortController | null = null
+let isCancelled = false
 
 const Update = () => {
   const window = useRef<WebviewWindow>()
@@ -40,11 +40,6 @@ const Update = () => {
     if (unlisten) {
       unlisten()
     }
-    // 取消正在进行的检查
-    if (abortController) {
-      abortController.abort()
-      abortController = null
-    }
     await window.current?.close()
   }
 
@@ -56,24 +51,24 @@ const Update = () => {
   }
 
   const cancelCheck = () => {
-    if (abortController) {
-      abortController.abort()
-      abortController = null
-      setCancelled(true)
-      setLoading(false)
-      toast('已取消检查更新', { icon: '⚠️', style: toastStyle })
+    isCancelled = true
+    setCancelled(true)
+    setLoading(false)
+    // 清理监听器
+    if (unlisten) {
+      unlisten()
     }
+    toast('已取消检查更新', { icon: '⚠️', style: toastStyle })
   }
 
   const check = async () => {
-    // 创建 AbortController 用于取消请求
-    abortController = new AbortController()
+    isCancelled = false
     
     try {
-      const { shouldUpdate, manifest } = await checkUpdate({ signal: abortController.signal })
+      const { shouldUpdate, manifest } = await checkUpdate()
       
-      // 如果被取消，不继续处理
-      if (abortController.signal.aborted) {
+      // 如果已取消，不继续处理
+      if (isCancelled) {
         return
       }
       
@@ -84,10 +79,11 @@ const Update = () => {
 
         // 记录当前下载进度
         unlisten = await listen('tauri://update-download-progress', (e) => {
+          if (isCancelled) return
           if (eventId === 0) {
             eventId = e.id
           }
-          if (e.id === eventId && !abortController?.signal.aborted) {
+          if (e.id === eventId) {
             // @ts-ignore
             setTotal(e.payload.contentLength)
             setDownloaded((a) => {
@@ -98,14 +94,14 @@ const Update = () => {
         })
       }
     } catch (err: any) {
-      // 如果是用户取消，不显示错误
-      if (err?.name !== 'AbortError' && !abortController?.signal.aborted) {
+      if (!isCancelled) {
         console.error('检查更新失败:', err)
         toast('检查更新失败，请稍后重试', { icon: '❌', style: toastStyle })
       }
     } finally {
-      setLoading(false)
-      abortController = null
+      if (!isCancelled) {
+        setLoading(false)
+      }
     }
   }
 
@@ -115,12 +111,9 @@ const Update = () => {
     
     // 组件卸载时清理
     return () => {
+      isCancelled = true
       if (unlisten) {
         unlisten()
-      }
-      if (abortController) {
-        abortController.abort()
-        abortController = null
       }
     }
   }, [])
