@@ -71,11 +71,23 @@ jobs:
           $bytes = [System.Convert]::FromBase64String("${{ secrets.TAURI_PRIVATE_KEY }}")
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
-      - name: Build Tauri app
+      - name: Clean NSIS cache
+        shell: pwsh
+        run: |
+          Remove-Item -Path "$env:USERPROFILE\.cargo\registry\src\*" -Filter "nsis-tauri-utils*" -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -Path "src-tauri/target" -Recurse -ErrorAction SilentlyContinue
+      
+      - name: Build Tauri app (NSIS installer)
         env:
           TAURI_PRIVATE_KEY: ${{ steps.check_secret.outputs.has_key == 'true' && 'cheatsheet.key' || '' }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
+        run: pnpm tauri build -b nsis --target x86_64-pc-windows-msvc
+      
+      - name: Build Tauri app (updater package)
+        env:
+          TAURI_PRIVATE_KEY: ${{ steps.check_secret.outputs.has_key == 'true' && 'cheatsheet.key' || '' }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: pnpm tauri build -b updater --target x86_64-pc-windows-msvc
       
       - name: Upload artifacts to GitHub Actions
         uses: actions/upload-artifact@v4
