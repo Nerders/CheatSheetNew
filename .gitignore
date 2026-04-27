@@ -32,7 +32,7 @@ pnpm-debug.log*
 # ========== 密钥和签名 ==========
 *.key
 *.key.pub
-~/.tauri/
+.tauri/
 .tauri/private.key
 *.pem
 
@@ -73,4 +73,7 @@ next-env.d.ts
 # ========== 其他 ==========
 .egjs
 .rollup.cache
-.tauri
+
+# ========== 自动更新相关（可选） ==========
+updater/
+update.json

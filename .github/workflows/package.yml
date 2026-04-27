@@ -70,12 +70,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
+      - name: Decode private key
+        shell: pwsh
+        run: |
+          $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
+          $bytes = [System.Convert]::FromBase64String($base64)
+          [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
+      
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          # TAURI_KEY_PASSWORD is not needed (no password)
+          TAURI_PRIVATE_KEY: "cheatsheet.key"
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: v${{ needs.get-version.outputs.version }}
           releaseName: "CheatSheetNew v${{ needs.get-version.outputs.version }}"
@@ -96,5 +103,5 @@ jobs:
             - ✅ 窗口比例 85%，圆角 30px
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true   # 自动生成 latest.json 更新文件
+          includeUpdaterJson: true
           args: --target ${{ matrix.target }}
