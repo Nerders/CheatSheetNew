@@ -4,126 +4,74 @@ on:
   push:
     branches: [main, master]
     tags:
-      - 'v*'
+      - '!updater'
+      - '*.*.*'
   workflow_dispatch:
 
 jobs:
-  get-version:
+  change-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.VERSION }}
+      version: ${{ steps.outputstep.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
-      - name: Get version from package.json
-        id: version
+      - name: Install git
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          sudo apt-get update
+          sudo apt-get install -y git
+      - id: outputstep
+        run: |
+          echo "VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')" >> "$GITHUB_OUTPUT"
+      - name: Change Version for Windows
+        run: |
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\",/g" package.json
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/tauri.conf.json
+          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+          echo $(git describe --tags | sed 's/-[0-9]*-.*//g')
+      - name: Upload Artifacts for Windows
+        uses: actions/upload-artifact@v3
+        with:
+          name: source
+          path: ./*
+          if-no-files-found: error
 
-  build-windows:
-    needs: get-version
-    runs-on: windows-2022
-    permissions:
-      contents: write
-      actions: read
-    
+  build-for-windows:
+    needs: change-version
+    runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - uses: actions/download-artifact@v3
         with:
-          node-version: 22
-      
-      - name: Install Rust stable
+          name: source
+      - name: Setup Nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 19
+      - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-      
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v2
         with:
           version: 8
-      
-      - name: Cache Cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-      
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pnpm install
-      
-      - name: Decode private key
-        shell: pwsh
+      - name: Build and Package
         run: |
-          $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
-          $bytes = [System.Convert]::FromBase64String($base64)
-          [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
-      
-      - name: Setup nsis-tauri-utils v0.4.0
-        shell: pwsh
-        run: |
-          $dllUrl = "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.4.0/nsis_tauri_utils.dll"
-          $pluginDir = "src-tauri/tools/nsis/plugins"
-          New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
-          $dllPath = "$pluginDir\nsis_tauri_utils.dll"
-          Invoke-WebRequest -Uri $dllUrl -OutFile $dllPath
-          Add-Content -Path $env:GITHUB_ENV -Value "NSIS_TAURI_UTILS_PATH=$dllPath"
-          Add-Content -Path $env:GITHUB_ENV -Value "TAURI_NSIS_TAURI_UTILS_SKIP_DOWNLOAD=1"
-      
-      - name: Build Tauri app
-        env:
-          TAURI_PRIVATE_KEY: "cheatsheet.key"
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: pnpm tauri build --target x86_64-pc-windows-msvc
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+          $env:TAURI_PRIVATE_KEY="${{ secrets.TAURI_PRIVATE_KEY }}"
+          $env:TAURI_KEY_PASSWORD="${{ secrets.TAURI_KEY_PASSWORD }}"
+          pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: CheatSheetNew-${{ needs.get-version.outputs.version }}-Windows
-          path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
+          name: windows_x86_64
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe*
           if-no-files-found: error
-      
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
         with:
-          name: CheatSheetNew v${{ needs.get-version.outputs.version }}
-          body: |
-            ## CheatSheetNew ${{ needs.get-version.outputs.version }}
-            
-            ### 更新内容
-            - 请在此处填写更新说明
-            
-            ### 安装说明
-            1. 下载 `CheatSheetNew_${{ needs.get-version.outputs.version }}_x64-setup.exe`
-            2. 双击运行安装
-            3. 打开 Adobe Photoshop，按 `F1` 查看快捷键
-            
-            ### 功能
-            - ✅ 支持 Adobe Photoshop 2026 快捷键
-            - ✅ 默认热键 F1 / Ctrl+F1
-            - ✅ 窗口比例 85%，圆角 30px
-          files: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body_path: CHANGELOG
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup*
