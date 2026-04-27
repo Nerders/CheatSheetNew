@@ -41,17 +41,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       
-      - name: Remove existing lockfile
-        shell: pwsh
-        run: |
-          Remove-Item -Force src-tauri/Cargo.lock -ErrorAction SilentlyContinue
-      
-      - name: Update dependencies
-        shell: pwsh
-        run: |
-          cd src-tauri
-          cargo update
-      
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
