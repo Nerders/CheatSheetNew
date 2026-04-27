@@ -31,6 +31,3 @@ window-vibrancy = "0.4.0"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-
-[patch.crates-io]
-nsis-tauri-utils = { git = "https://github.com/tauri-apps/nsis-tauri-utils", tag = "nsis_tauri_utils-v0.4.0" }
