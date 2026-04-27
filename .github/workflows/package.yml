@@ -72,14 +72,16 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
-      - name: Download compatible nsis-tauri-utils
+      - name: Setup nsis-tauri-utils v0.4.0
         shell: pwsh
         run: |
           $dllUrl = "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.4.0/nsis_tauri_utils.dll"
-          $destDir = "$env:LOCALAPPDATA\tauri\NSIS\Plugins"
-          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-          Invoke-WebRequest -Uri $dllUrl -OutFile "$destDir\nsis_tauri_utils.dll"
-          Write-Host "已下载并放置 nsis_tauri_utils.dll v0.4.0"
+          $pluginDir = "src-tauri/tools/nsis/plugins"
+          New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
+          $dllPath = "$pluginDir\nsis_tauri_utils.dll"
+          Invoke-WebRequest -Uri $dllUrl -OutFile $dllPath
+          Add-Content -Path $env:GITHUB_ENV -Value "NSIS_TAURI_UTILS_PATH=$dllPath"
+          Add-Content -Path $env:GITHUB_ENV -Value "TAURI_NSIS_TAURI_UTILS_SKIP_DOWNLOAD=1"
       
       - name: Build Tauri app
         env:
