@@ -14,7 +14,7 @@ jobs:
       version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       
@@ -39,12 +39,19 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+      
+      - name: Remove existing lockfile
+        run: rm -f src-tauri/Cargo.lock
+      
+      - name: Update dependencies
+        run: cargo update
+        working-directory: src-tauri
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -52,12 +59,12 @@ jobs:
           targets: ${{ matrix.target }}
       
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 8
       
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -70,7 +77,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
-      # 官方 tauri-action 会自动处理签名、打包和 Release 创建
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
