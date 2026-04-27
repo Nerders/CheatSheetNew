@@ -97,7 +97,7 @@
       "active": true,
       "dialog": false,
       "endpoints": ["https://github.com/Nerders/CheatSheetNew/releases/download/updater/update.json"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1Njk4QTc1REJEMEU5NzgKUldSNDZkRGJkWXBwbFZjb05QTVVaMHNJUDZqc0g1aE9LWGJPUERoKys3T05POTg5NW9WQ0NXYmQK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlFNjk3MTk1RDk2QTJDOTYKUldTV0xHclpsWEZwbmtWZW50NEx5S0IvRHBCTTlLTHp6MnhJalJ4dGZBWlIrL05RUFIzWmJuRTQK"
     },
     "windows": [
       {
