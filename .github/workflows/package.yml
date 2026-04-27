@@ -88,7 +88,7 @@ jobs:
       - name: Override NSIS plugin with local build
         shell: pwsh
         run: |
-          $source = "nsis-tauri-utils/target/release/nsis_tauri_utils.dll"
+          $source = "nsis-tauri-utils/crates/nsis-tauri-utils/target/release/nsis_tauri_utils.dll"
           $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
           New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
           Copy-Item -Path $source -Destination $dest -Force
@@ -100,6 +100,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NSIS_TAURI_UTILS_SKIP_DOWNLOAD: "1"
         with:
           tagName: v${{ needs.get-version.outputs.version }}
           releaseName: "CheatSheetNew v${{ needs.get-version.outputs.version }}"
