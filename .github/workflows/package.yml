@@ -41,7 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          submodules: 'recursive'   # 关键：初始化子模块
+          submodules: 'recursive'
       
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -79,13 +79,20 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
-      # --- 本地构建 nsis-tauri-utils 子模块 ---
       - name: Build nsis-tauri-utils from source
         run: |
           cd nsis-tauri-utils/crates/nsis-tauri-utils
           cargo build --release
           cd ../../../..
-      # --------------------------------------
+      
+      - name: Override NSIS plugin with local build
+        shell: pwsh
+        run: |
+          $source = "nsis-tauri-utils/target/release/nsis_tauri_utils.dll"
+          $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
+          New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+          Copy-Item -Path $source -Destination $dest -Force
+          Write-Host "已复制本地编译的 DLL 到 $dest"
       
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
