@@ -77,6 +77,15 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
+      # 关键修复：手动下载兼容版本的 nsis_tauri_utils.dll
+      - name: Setup nsis-tauri-utils (compatible version)
+        shell: pwsh
+        run: |
+          $dllUrl = "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.4.0/nsis_tauri_utils.dll"
+          $dllPath = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\"
+          New-Item -ItemType Directory -Force -Path $dllPath | Out-Null
+          Invoke-WebRequest -Uri $dllUrl -OutFile "$dllPath\nsis_tauri_utils.dll"
+      
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
