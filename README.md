@@ -6,15 +6,6 @@
 
 <b>🎉 一个跨平台显示应用快捷键的软件</b>
 
-![License](https://img.shields.io/github/license/JinSooo/CheatSheet.svg)
-![TypeScript](https://img.shields.io/badge/-TypeScript-blue?logo=typescript&logoColor=white)
-![Tauri](https://img.shields.io/badge/Tauri-1.4.1-blue?logo=tauri)
-![Rust](https://img.shields.io/badge/-Rust-orange?logo=rust&logoColor=white)
-![Windows](https://img.shields.io/badge/-Windows-blue?logo=windows&logoColor=white)
-![MacOS](https://img.shields.io/badge/-macOS-black?&logo=apple&logoColor=white)
-
-<br/>
-
 <img src="docs/images/cheatsheet-win-lightdark.png" width="400" />
 &nbsp
 <img src="docs/images/cheatsheet-mac-lightdark.png" width="400" />
