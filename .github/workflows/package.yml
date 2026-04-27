@@ -40,8 +40,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          submodules: 'recursive'
       
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -79,35 +77,12 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
-      - name: Build nsis-tauri-utils from source
-        run: |
-          cd nsis-tauri-utils/crates/nsis-tauri-utils
-          cargo build --release
-          cd ../../../..
-      
-      - name: Override NSIS plugin with local build
-        shell: pwsh
-        run: |
-          Write-Host "搜索编译生成的 nsis_tauri_utils.dll..."
-          $dll = Get-ChildItem -Recurse -Filter "nsis_tauri_utils.dll" -Path "nsis-tauri-utils" | Select-Object -First 1
-          if ($dll) {
-            Write-Host "找到 DLL: $($dll.FullName)"
-            $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
-            New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
-            Copy-Item -Path $dll.FullName -Destination $dest -Force
-            Write-Host "已复制 DLL 到 $dest"
-          } else {
-            Write-Host "未找到 nsis_tauri_utils.dll，编译可能失败或输出路径异常。"
-            exit 1
-          }
-      
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          NSIS_TAURI_UTILS_SKIP_DOWNLOAD: "1"
         with:
           tagName: v${{ needs.get-version.outputs.version }}
           releaseName: "CheatSheetNew v${{ needs.get-version.outputs.version }}"
