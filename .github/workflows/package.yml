@@ -42,11 +42,15 @@ jobs:
         uses: actions/checkout@v5
       
       - name: Remove existing lockfile
-        run: rm -f src-tauri/Cargo.lock
+        shell: pwsh
+        run: |
+          Remove-Item -Force src-tauri/Cargo.lock -ErrorAction SilentlyContinue
       
       - name: Update dependencies
-        run: cargo update
-        working-directory: src-tauri
+        shell: pwsh
+        run: |
+          cd src-tauri
+          cargo update
       
       - name: Setup Node.js
         uses: actions/setup-node@v5
