@@ -27,7 +27,7 @@ jobs:
 
   build-windows:
     needs: get-version
-    runs-on: windows-latest
+    runs-on: windows-2022
     permissions:
       contents: write
       actions: read
@@ -72,7 +72,6 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
       
-      # ---- 手动下载兼容版 NSIS 插件并替换 ----
       - name: Download compatible nsis-tauri-utils
         shell: pwsh
         run: |
@@ -80,16 +79,15 @@ jobs:
           $destDir = "$env:LOCALAPPDATA\tauri\NSIS\Plugins"
           New-Item -ItemType Directory -Force -Path $destDir | Out-Null
           Invoke-WebRequest -Uri $dllUrl -OutFile "$destDir\nsis_tauri_utils.dll"
-          Write-Host "成功下载并放置 nsis_tauri_utils.dll v0.4.0"
-      # ------------------------------------------
+          Write-Host "已下载并放置 nsis_tauri_utils.dll v0.4.0"
       
-      - name: Build Tauri app (no bundle filter)
+      - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: pnpm tauri build --target x86_64-pc-windows-msvc
       
-      - name: Upload artifacts to GitHub Actions
+      - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
           name: CheatSheetNew-${{ needs.get-version.outputs.version }}-Windows
@@ -99,7 +97,7 @@ jobs:
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           if-no-files-found: error
       
-      - name: Create Release (on tag push)
+      - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
