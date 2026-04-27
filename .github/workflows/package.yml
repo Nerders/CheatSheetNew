@@ -88,11 +88,18 @@ jobs:
       - name: Override NSIS plugin with local build
         shell: pwsh
         run: |
-          $source = "nsis-tauri-utils/crates/nsis-tauri-utils/target/release/nsis_tauri_utils.dll"
-          $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
-          New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
-          Copy-Item -Path $source -Destination $dest -Force
-          Write-Host "已复制本地编译的 DLL 到 $dest"
+          Write-Host "搜索编译生成的 nsis_tauri_utils.dll..."
+          $dll = Get-ChildItem -Recurse -Filter "nsis_tauri_utils.dll" -Path "nsis-tauri-utils" | Select-Object -First 1
+          if ($dll) {
+            Write-Host "找到 DLL: $($dll.FullName)"
+            $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
+            New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+            Copy-Item -Path $dll.FullName -Destination $dest -Force
+            Write-Host "已复制 DLL 到 $dest"
+          } else {
+            Write-Host "未找到 nsis_tauri_utils.dll，编译可能失败或输出路径异常。"
+            exit 1
+          }
       
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
