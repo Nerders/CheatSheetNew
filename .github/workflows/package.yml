@@ -20,6 +20,7 @@ jobs:
 
       - name: Get version from package.json
         id: version
+        shell: pwsh
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
@@ -42,16 +43,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Decode private key
+      - name: Decode private key to .tauri/
         shell: pwsh
         run: |
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
-          [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
+          New-Item -ItemType Directory -Force -Path .tauri
+          [System.IO.File]::WriteAllBytes(".tauri/cheatsheet.key", $bytes)
+          $length = (Get-Item ".tauri/cheatsheet.key").Length
+          Write-Host "Private key size: $length bytes"
+          if ($length -lt 100) {
+            Write-Error "Private key too small, check your secret"
+            exit 1
+          }
+
+      # 切勿再手动安装 nsis_tauri_utils，Tauri 会自动下载正确版本
 
       - name: Build Tauri app
         env:
-          TAURI_PRIVATE_KEY: "cheatsheet.key"
+          TAURI_PRIVATE_KEY: ".tauri/cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: pnpm tauri build --target x86_64-pc-windows-msvc
 
@@ -60,9 +70,9 @@ jobs:
         with:
           name: CheatSheetNew-${{ steps.version.outputs.VERSION }}-Windows
           path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           if-no-files-found: error
 
       - name: Create Release
@@ -77,13 +87,13 @@ jobs:
             - 请在此处填写更新说明
             
             ### 安装说明
-            1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64_zh-CN.msi`
+            1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64-setup.exe`
             2. 双击运行安装
             3. 打开 Adobe Photoshop，按 `F1` 查看快捷键
           files: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           draft: false
           prerelease: false
         env:
