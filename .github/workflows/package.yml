@@ -4,79 +4,58 @@ on:
   push:
     branches: [main, master]
     tags:
-      - '!updater'
-      - '*.*.*'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build-for-windows:
-    runs-on: windows-latest
+  build-windows:
+    runs-on: windows-2019          # 关键：使用 windows-2019 镜像
     permissions:
       contents: write
     steps:
-      - name: Checkout code and submodules
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: 'recursive'
-      
-      - name: Get version from tag
+
+      - name: Get version from package.json
         id: version
         run: |
-          $tag = git describe --tags
-          $raw = $tag -replace '-[0-9]+-.*',''
-          $version = $raw -replace '^v',''
+          $version = (Get-Content package.json | ConvertFrom-Json).version
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-          echo "Version: $version"
-      
-      - name: Update version in files
-        run: |
-          $version = "${{ steps.version.outputs.VERSION }}"
-          (Get-Content package.json) -replace '"version": ".*"', '"version": "' + $version + '"' | Set-Content package.json
-          (Get-Content src-tauri/tauri.conf.json) -replace '"version": ".*"', '"version": "' + $version + '"' | Set-Content src-tauri/tauri.conf.json
-          (Get-Content src-tauri/Cargo.toml) -replace 'version = ".*"', 'version = "' + $version + '"' | Set-Content src-tauri/Cargo.toml
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
-      - name: Install Rust Stable
-        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust stable (1.70.0)
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.70.0        # 固定版本
           targets: x86_64-pc-windows-msvc
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
-      
+
       - name: Install dependencies
         run: pnpm install
-      
+
       - name: Decode private key
         shell: pwsh
         run: |
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
-      
-      - name: Build nsis-tauri-utils from source
-        shell: pwsh
-        run: |
-          cd nsis-tauri-utils/crates/nsis-tauri-utils
-          cargo build --release
-          $dllPath = Resolve-Path "target/release/nsis_tauri_utils.dll"
-          Write-Host "DLL compiled at: $dllPath"
-          echo "NSIS_TAURI_UTILS_PATH=$dllPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-      
+
       - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          NSIS_TAURI_UTILS_PATH: ${{ env.NSIS_TAURI_UTILS_PATH }}
-        run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
-      
+        run: pnpm tauri build --target x86_64-pc-windows-msvc
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +65,7 @@ jobs:
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           if-no-files-found: error
-      
+
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags')
         uses: softprops/action-gh-release@v2
