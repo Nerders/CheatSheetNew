@@ -9,6 +9,7 @@ default-run = "cheat_sheet_new"
 edition = "2021"
 rust-version = "1.60"
 
+[build-dependencies]
 tauri-build = { version = "1.4.0", features = [] }
 
 [dependencies]
@@ -30,10 +31,3 @@ window-vibrancy = "0.4.0"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-
-tauri-build = { version = "1.4.0", features = [] }
-nsis-tauri-utils = { git = "https://github.com/tauri-apps/nsis-tauri-utils", tag = "nsis_tauri_utils-v0.4.0" }
-
-[build-dependencies]
-tauri-build = { version = "1.4.0", features = [] }
-nsis-tauri-utils = { git = "https://github.com/tauri-apps/nsis-tauri-utils", tag = "nsis_tauri_utils-v0.4.0" }
