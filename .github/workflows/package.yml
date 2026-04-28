@@ -9,71 +9,58 @@ on:
   workflow_dispatch:
 
 jobs:
-  change-version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.outputstep.outputs.VERSION }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install git
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git
-      - id: outputstep
-        run: |
-          RAW=$(git describe --tags | sed 's/-[0-9]*-.*//g')
-          VERSION=${RAW#v}
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Change Version for Windows
-        run: |
-          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g' | sed 's/^v//')
-          sed -i "s/\"version\":.*/\"version\": \"$VERSION\",/g" package.json
-          sed -i "s/\"version\":.*/\"version\": \"$VERSION\"/g" src-tauri/tauri.conf.json
-          sed -i "s/version = \"0.0.0\"/version = \"$VERSION\"/g" src-tauri/Cargo.toml
-      - name: Upload source artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: source
-          path: ./*
-          if-no-files-found: error
-
   build-for-windows:
-    needs: change-version
     runs-on: windows-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout code and submodules
+        uses: actions/checkout@v4
         with:
-          name: source
-
+          fetch-depth: 0
+          submodules: 'recursive'
+      
+      - name: Get version from tag
+        id: version
+        run: |
+          $tag = git describe --tags
+          $raw = $tag -replace '-[0-9]+-.*',''
+          $version = $raw -replace '^v',''
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version: $version"
+      
+      - name: Update version in files
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          (Get-Content package.json) -replace '"version": ".*"', '"version": "' + $version + '"' | Set-Content package.json
+          (Get-Content src-tauri/tauri.conf.json) -replace '"version": ".*"', '"version": "' + $version + '"' | Set-Content src-tauri/tauri.conf.json
+          (Get-Content src-tauri/Cargo.toml) -replace 'version = ".*"', 'version = "' + $version + '"' | Set-Content src-tauri/Cargo.toml
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+      
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
-
+        with:
+          targets: x86_64-pc-windows-msvc
+      
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
-
+      
       - name: Install dependencies
         run: pnpm install
-
+      
       - name: Decode private key
         shell: pwsh
         run: |
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
-
-      # 关键: 编译 nsis-tauri-utils 并设置环境变量
+      
       - name: Build nsis-tauri-utils from source
         shell: pwsh
         run: |
@@ -82,25 +69,44 @@ jobs:
           $dllPath = Resolve-Path "target/release/nsis_tauri_utils.dll"
           Write-Host "DLL compiled at: $dllPath"
           echo "NSIS_TAURI_UTILS_PATH=$dllPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-
+      
       - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           NSIS_TAURI_UTILS_PATH: ${{ env.NSIS_TAURI_UTILS_PATH }}
         run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
-
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows_x86_64
-          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe*
+          name: CheatSheetNew-${{ steps.version.outputs.VERSION }}-Windows
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           if-no-files-found: error
-
+      
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags')
         uses: softprops/action-gh-release@v2
         with:
-          body_path: CHANGELOG
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup*
+          name: CheatSheetNew v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## CheatSheetNew ${{ steps.version.outputs.VERSION }}
+            
+            ### 更新内容
+            - 请在此处填写更新说明
+            
+            ### 安装说明
+            1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64-setup.exe`
+            2. 双击运行安装
+            3. 打开 Adobe Photoshop，按 `F1` 查看快捷键
+          files: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
