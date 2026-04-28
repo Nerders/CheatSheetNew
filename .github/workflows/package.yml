@@ -70,9 +70,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Decode private key
+        shell: pwsh
+        run: |
+          $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
+          $bytes = [System.Convert]::FromBase64String($base64)
+          [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
+
       - name: Build Tauri app (NSIS + updater)
         env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
 
