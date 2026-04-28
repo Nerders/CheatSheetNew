@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: 'recursive'
 
       - name: Get version from package.json
         id: version
@@ -60,17 +61,14 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
 
-      # 关键：预先编译 nsis-tauri-utils 插件，并设置环境变量
       - name: Build nsis-tauri-utils from source
         shell: pwsh
         run: |
-          # 进入插件目录
-          cd nsis-tauri-utils/crates/nsis-tauri-utils
+          cd nsis-tauri-utils
           cargo build --release
           $dllPath = Resolve-Path "target/release/nsis_tauri_utils.dll"
           Write-Host "DLL_PATH=$dllPath"
           echo "NSIS_TAURI_UTILS_PATH=$dllPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-        # 注意：如果你的仓库中没有 nsis-tauri-utils 子模块，需要先添加子模块；如果已添加则可用。
 
       - name: Build Tauri app
         env:
@@ -98,7 +96,7 @@ jobs:
             ## CheatSheetNew ${{ steps.version.outputs.VERSION }}
             
             ### 更新内容
-            - 请在此处填写更新说明
+            - fix: 修正 nsis-tauri-utils 编译路径
             
             ### 安装说明
             1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64-setup.exe`
