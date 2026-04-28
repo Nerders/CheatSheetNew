@@ -4,95 +4,101 @@ on:
   push:
     branches: [main, master]
     tags:
-      - '!updater'
-      - '*.*.*'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  change-version:
+  get-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.outputstep.outputs.VERSION }}
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Install git
+      - name: Get version from package.json
+        id: version
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - id: outputstep
-        run: |
-          RAW_VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')
-          VERSION=${RAW_VERSION#v}
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Change Version for Windows
-        run: |
-          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g' | sed 's/^v//')
-          sed -i "s/\"version\":.*/\"version\": \"$VERSION\",/g" package.json
-          sed -i "s/\"version\":.*/\"version\": \"$VERSION\"/g" src-tauri/tauri.conf.json
-          sed -i "s/version = \"0.0.0\"/version = \"$VERSION\"/g" src-tauri/Cargo.toml
-
-      - name: Upload source artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: source
-          path: ./*
-          if-no-files-found: error
-
-  build-for-windows:
-    needs: change-version
-    runs-on: windows-latest
+  build-windows:
+    needs: get-version
+    runs-on: windows-2022
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: source
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust stable (1.70.0)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.70.0
+          targets: x86_64-pc-windows-msvc
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 8
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Decode private key
+      - name: Decode private key (Base64 -> file)
         shell: pwsh
         run: |
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
 
-      - name: Build Tauri app (NSIS + updater)
+      - name: Force nsis-tauri-utils v0.4.0
+        shell: pwsh
+        run: |
+          $url = "https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.4.0/nsis_tauri_utils.dll"
+          $dest = "$env:LOCALAPPDATA\tauri\NSIS\Plugins\nsis_tauri_utils.dll"
+          New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $dest
+          Write-Host "Placed nsis_tauri_utils v0.4.0"
+
+      - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
+        run: pnpm tauri build --target x86_64-pc-windows-msvc
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: windows_x86_64
-          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe*
+          name: CheatSheetNew-${{ needs.get-version.outputs.version }}-Windows
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
 
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          body_path: CHANGELOG
+          name: CheatSheetNew v${{ needs.get-version.outputs.version }}
+          files: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*setup*
