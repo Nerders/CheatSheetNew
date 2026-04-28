@@ -17,7 +17,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: 'recursive'
 
       - name: Get version from package.json
         id: version
@@ -40,17 +39,6 @@ jobs:
         with:
           version: 8
 
-      - name: Cache Cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
       - name: Install dependencies
         run: pnpm install
 
@@ -61,30 +49,20 @@ jobs:
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
 
-      - name: Build nsis-tauri-utils from source
-        shell: pwsh
-        run: |
-          cd nsis-tauri-utils
-          cargo build --release
-          $dllPath = Resolve-Path "target/release/nsis_tauri_utils.dll"
-          Write-Host "DLL_PATH=$dllPath"
-          echo "NSIS_TAURI_UTILS_PATH=$dllPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-
       - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          NSIS_TAURI_UTILS_PATH: ${{ env.NSIS_TAURI_UTILS_PATH }}
         run: pnpm tauri build --target x86_64-pc-windows-msvc
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: CheatSheetNew-${{ steps.version.outputs.VERSION }}-Windows
           path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
           if-no-files-found: error
 
       - name: Create Release
@@ -96,16 +74,16 @@ jobs:
             ## CheatSheetNew ${{ steps.version.outputs.VERSION }}
             
             ### 更新内容
-            - fix: 修正 nsis-tauri-utils 编译路径
+            - 请在此处填写更新说明
             
             ### 安装说明
-            1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64-setup.exe`
+            1. 下载 `CheatSheetNew_${{ steps.version.outputs.VERSION }}_x64_zh-CN.msi`
             2. 双击运行安装
             3. 打开 Adobe Photoshop，按 `F1` 查看快捷键
           files: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.zip
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi.zip.sig
           draft: false
           prerelease: false
         env:

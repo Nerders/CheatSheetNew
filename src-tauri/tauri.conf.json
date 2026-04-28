@@ -80,7 +80,7 @@
       },
       "resources": ["./shortcuts", "./resources"],
       "shortDescription": "",
-      "targets": "all",
+      "targets": ["msi", "updater"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
