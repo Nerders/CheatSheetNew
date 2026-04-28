@@ -26,14 +26,16 @@ jobs:
 
       - id: outputstep
         run: |
-          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')
+          RAW_VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')
+          VERSION=${RAW_VERSION#v}
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Change Version for Windows
         run: |
-          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\",/g" package.json
-          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/tauri.conf.json
-          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g' | sed 's/^v//')
+          sed -i "s/\"version\":.*/\"version\": \"$VERSION\",/g" package.json
+          sed -i "s/\"version\":.*/\"version\": \"$VERSION\"/g" src-tauri/tauri.conf.json
+          sed -i "s/version = \"0.0.0\"/version = \"$VERSION\"/g" src-tauri/Cargo.toml
 
       - name: Upload source artifact
         uses: actions/upload-artifact@v4
