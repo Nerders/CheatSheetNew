@@ -55,7 +55,6 @@ jobs:
           node-version: 20
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
-        # 使用最新稳定版，不固定版本
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -68,10 +67,17 @@ jobs:
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
+      # 编译 nsis-tauri-utils 插件
+      - name: Build nsis-tauri-utils from source
+        run: |
+          cd nsis-tauri-utils/crates/nsis-tauri-utils
+          cargo build --release
+          echo "NSIS_TAURI_UTILS_PATH=$env:GITHUB_WORKSPACE/nsis-tauri-utils/crates/nsis-tauri-utils/target/release/nsis_tauri_utils.dll" >> $env:GITHUB_ENV
       - name: Build and Package
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NSIS_TAURI_UTILS_PATH: ${{ env.NSIS_TAURI_UTILS_PATH }}
         run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

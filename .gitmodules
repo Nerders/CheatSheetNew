@@ -1,0 +1,3 @@
+[submodule "nsis-tauri-utils"]
+	path = nsis-tauri-utils
+	url = https://github.com/tauri-apps/nsis-tauri-utils.git
