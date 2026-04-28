@@ -49,42 +49,54 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: source
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
-      - name: Install Dependencies
+
+      - name: Install dependencies
         run: pnpm install
+
       - name: Decode private key
         shell: pwsh
         run: |
           $base64 = "${{ secrets.TAURI_PRIVATE_KEY }}"
           $bytes = [System.Convert]::FromBase64String($base64)
           [System.IO.File]::WriteAllBytes("cheatsheet.key", $bytes)
-      # 编译 nsis-tauri-utils 插件
+
+      # 关键: 编译 nsis-tauri-utils 并设置环境变量
       - name: Build nsis-tauri-utils from source
+        shell: pwsh
         run: |
           cd nsis-tauri-utils/crates/nsis-tauri-utils
           cargo build --release
-          echo "NSIS_TAURI_UTILS_PATH=$env:GITHUB_WORKSPACE/nsis-tauri-utils/crates/nsis-tauri-utils/target/release/nsis_tauri_utils.dll" >> $env:GITHUB_ENV
-      - name: Build and Package
+          $dllPath = Resolve-Path "target/release/nsis_tauri_utils.dll"
+          Write-Host "DLL compiled at: $dllPath"
+          echo "NSIS_TAURI_UTILS_PATH=$dllPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build Tauri app
         env:
           TAURI_PRIVATE_KEY: "cheatsheet.key"
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           NSIS_TAURI_UTILS_PATH: ${{ env.NSIS_TAURI_UTILS_PATH }}
         run: pnpm tauri build -b nsis,updater --target x86_64-pc-windows-msvc
-      - name: Upload Artifacts
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows_x86_64
           path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe*
           if-no-files-found: error
+
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags')
         uses: softprops/action-gh-release@v2
